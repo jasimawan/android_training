@@ -13,9 +13,6 @@ import android.view.View;
 import android.widget.EditText;
 
 public class MainActivity extends AppCompatActivity {
-    private static final int PICK_FROM_GALLERY = 1;
-    private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION =1  ;
-    boolean mLocationPermissionGranted;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -39,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void getWeather(View view) {
-        Intent weather = new Intent(this, findCityWeather.class);
+        Intent weather = new Intent(this, settingsActivity.class);
         startActivity(weather);
     }
 
