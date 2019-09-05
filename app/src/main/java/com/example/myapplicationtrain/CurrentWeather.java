@@ -9,6 +9,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -21,6 +22,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
@@ -36,9 +38,11 @@ import androidx.recyclerview.widget.RecyclerView;
 public class CurrentWeather extends AppCompatActivity {
 
     String[] days = new String[7];
-    String[] temperatures = new String[7];
-    String[] condition = new String[7];
-    DetailsData[] extraDetails = new DetailsData[7];
+    //String[] temperatures = new String[7];
+    //String[] condition = new String[7];
+    //DetailsData[] extraDetails = new DetailsData[7];
+
+    ArrayList<DetailsData> weatherList = new ArrayList<DetailsData>();
 
 
     private MyAdapter mAdapter;
@@ -91,10 +95,6 @@ public class CurrentWeather extends AppCompatActivity {
 
         FetchWeather(cityName);
 
-        setDays();
-
-
-
         refreshClicked = false;
     }
 
@@ -142,34 +142,22 @@ public class CurrentWeather extends AppCompatActivity {
 
             @Override
             protected void onPostExecute(Void Void) {
+                String day, temperature, condition;
                 if(data!=null){
                     try{
 
                         cityName = data.getJSONObject("location").getString("name");
                         countryName = data.getJSONObject("location").getString("country");
 
-                        Log.d("unit", unit);
+                        for(int i=0; i< 7; i++){
 
-                        if(unit.equals("c")){
-                            for(int i=0; i< temperatures.length; i++){
-                                temperatures[i] = data.getJSONObject("forecast").getJSONArray("forecastday").getJSONObject(i).getJSONObject("day").getString("avgtemp_c")+"°C";
-                                Log.e("Error", temperatures[i]);
+                            if(unit.equals("c")){
+                                temperature = data.getJSONObject("forecast").getJSONArray("forecastday").getJSONObject(i).getJSONObject("day").getString("avgtemp_c")+"°C";
+                            } else{
+                                temperature = data.getJSONObject("forecast").getJSONArray("forecastday").getJSONObject(i).getJSONObject("day").getString("avgtemp_f")+"°F";
                             }
-                        }
 
-                        else{
-                            for(int i=0; i< temperatures.length; i++){
-                                temperatures[i] = data.getJSONObject("forecast").getJSONArray("forecastday").getJSONObject(i).getJSONObject("day").getString("avgtemp_f")+"°F";
-                                Log.e("Error", temperatures[i]);
-                            }
-                        }
-
-                        for(int i=0; i< condition.length; i++){
-                            condition[i] = data.getJSONObject("forecast").getJSONArray("forecastday").getJSONObject(i).getJSONObject("day").getJSONObject("condition").getString("text");
-                            Log.e("Error", condition[i]);
-                        }
-
-                        for(int i=0; i< extraDetails.length; i++){
+                            condition = data.getJSONObject("forecast").getJSONArray("forecastday").getJSONObject(i).getJSONObject("day").getJSONObject("condition").getString("text");
 
                             String date = data.getJSONObject("forecast").getJSONArray("forecastday").getJSONObject(i).getString("date");
 
@@ -190,36 +178,32 @@ public class CurrentWeather extends AppCompatActivity {
                             String sunrise = data.getJSONObject("forecast").getJSONArray("forecastday").getJSONObject(i).getJSONObject("astro").getString("sunrise");
                             String sunset = data.getJSONObject("forecast").getJSONArray("forecastday").getJSONObject(i).getJSONObject("astro").getString("sunset");
 
-                            Log.e("Error", date);
-                            Log.e("Error", maxtemp_c);
-                            Log.e("Error", mintemp_c);
-                            Log.e("Error", maxwind_mph);
-                            Log.e("Error", maxwind_kph);
-                            Log.e("Error", totalprecip_mm);
-                            Log.e("Error", totalprecip_in);
-                            Log.e("Error", avgvis_km);
-                            Log.e("Error", avgvis_miles);
-                            Log.e("Error", avghumidity);
-                            Log.e("Error", sunrise);
-                            Log.e("Error", sunset);
+                            setDays();
 
-                            DetailsData detailedData = new DetailsData(date, maxtemp_c, mintemp_c, maxwind_mph, maxwind_kph, totalprecip_mm, totalprecip_in, avgvis_km, avgvis_miles, avghumidity, sunrise, sunset);
+                            DetailsData detailedData = new DetailsData(date, maxtemp_c, mintemp_c, maxwind_mph, maxwind_kph, totalprecip_mm, totalprecip_in, avgvis_km, avgvis_miles, avghumidity, sunrise, sunset, days[i], temperature, condition );
 
-                            extraDetails[i] = detailedData;
+                            weatherList.add(detailedData);
                         }
 
                         setMainPanel();
 
-                        mAdapter = new MyAdapter(days,temperatures,condition);
+                        mAdapter = new MyAdapter(weatherList);
                         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());
                         rv.setLayoutManager(mLayoutManager);
                         rv.setItemAnimator(new DefaultItemAnimator());
                         rv.setAdapter(mAdapter);
 
+                        mAdapter.setOnItemClickListener(new MyAdapter.ClickListener() {
+                            @Override
+                            public void onItemClick(int position, View v) {
 
-                        for (int i =0 ;i<days.length; i++){
-                            Log.e("Error", days[i]);
-                        }
+                                Intent intent = new Intent(CurrentWeather.this, weatherDetails.class);
+
+                                setIntentData(intent, position);
+
+                                startActivity(intent);
+                            }
+                        });
 
 
 
@@ -239,12 +223,14 @@ public class CurrentWeather extends AppCompatActivity {
     }
 
     void setMainPanel(){
-        mainCondition.setText(condition[0]);
-        mainTemp.setText(temperatures[0]);
+
+        DetailsData weatherData = weatherList.get(0);
+        mainCondition.setText(weatherData.condition);
+        mainTemp.setText(weatherData.temperature);
 
         location.setText(cityName + ", " + countryName);
 
-        String conditionIcon= condition[0]; // conditionIcon = Partly cloudy, Light drizzle, etc
+        String conditionIcon= weatherData.condition; // conditionIcon = Partly cloudy, Light drizzle, etc
         conditionIcon = conditionIcon.replaceAll("\\s","").toLowerCase(); //Partlycloudy -> partlycloudy
         Log.d("cond", conditionIcon);
 
@@ -332,26 +318,28 @@ public class CurrentWeather extends AppCompatActivity {
 
     void setIntentData(Intent intent, int i){
 
+        DetailsData weatherData = weatherList.get(i+1);
+
         intent.putExtra("day",days[i+1]);
 
-        intent.putExtra("date",extraDetails[i+1].date);
+        intent.putExtra("date",weatherData.date);
 
-        intent.putExtra("mintemp_c",extraDetails[i+1].mintemp_c);
-        intent.putExtra("maxtemp_c",extraDetails[i+1].maxtemp_c);
+        intent.putExtra("mintemp_c",weatherData.mintemp_c);
+        intent.putExtra("maxtemp_c",weatherData.maxtemp_c);
 
-        intent.putExtra("maxwind_mph",extraDetails[i+1].maxwind_mph);
-        intent.putExtra("maxwind_kph",extraDetails[i+1].maxwind_kph);
+        intent.putExtra("maxwind_mph",weatherData.maxwind_mph);
+        intent.putExtra("maxwind_kph",weatherData.maxwind_kph);
 
-        intent.putExtra("totalprecip_mm",extraDetails[i+1].totalprecip_mm);
-        intent.putExtra("totalprecip_in",extraDetails[i+1].totalprecip_in);
+        intent.putExtra("totalprecip_mm",weatherData.totalprecip_mm);
+        intent.putExtra("totalprecip_in",weatherData.totalprecip_in);
 
-        intent.putExtra("avgvis_km",extraDetails[i+1].avgvis_km);
-        intent.putExtra("avgvis_miles",extraDetails[i+1].avgvis_miles);
+        intent.putExtra("avgvis_km",weatherData.avgvis_km);
+        intent.putExtra("avgvis_miles",weatherData.avgvis_miles);
 
-        intent.putExtra("avghumidity",extraDetails[i+1].avghumidity);
+        intent.putExtra("avghumidity",weatherData.avghumidity);
 
-        intent.putExtra("sunrise",extraDetails[i+1].sunrise);
-        intent.putExtra("sunset",extraDetails[i+1].sunset);
+        intent.putExtra("sunrise",weatherData.sunrise);
+        intent.putExtra("sunset",weatherData.sunset);
     }
 
     public void launchDetailsActivity(View view) {

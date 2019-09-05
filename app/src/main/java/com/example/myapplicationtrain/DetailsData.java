@@ -4,6 +4,10 @@ package com.example.myapplicationtrain;
 public class DetailsData {
     String date;
 
+    String day;
+    String temperature;
+    String condition;
+
     String maxtemp_c;
     String mintemp_c;
 
@@ -24,7 +28,7 @@ public class DetailsData {
     public DetailsData (String date, String maxtemp_c, String mintemp_c, String maxwind_mph,
                          String maxwind_kph, String totalprecip_mm, String totalprecip_in,
                          String avgvis_km, String avgvis_miles, String avghumidity,String sunrise,
-                         String sunset){
+                         String sunset, String day, String temperature, String condition){
 
         this.date = date;
 
@@ -44,6 +48,10 @@ public class DetailsData {
 
         this.sunrise = sunrise;
         this.sunset = sunset;
+
+        this.day = day;
+        this.condition = condition;
+        this.temperature = temperature;
     }
 
 }
