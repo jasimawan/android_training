@@ -8,10 +8,13 @@ import androidx.fragment.app.FragmentActivity;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.SearchView;
 import android.widget.Toast;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -23,6 +26,8 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import java.io.IOException;
+import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -36,6 +41,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     //vars
     private Boolean mLocationPermissionsGranted = false;
     private GoogleMap mMap;
+    SearchView searchView;
+
+
     private FusedLocationProviderClient mFusedLocationProviderClient;
     String latitude, longitude;
 
@@ -44,7 +52,45 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
 
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.mapFragment);
+
+
+        searchView = findViewById(R.id.sv_location);
+
         getLocationPermission();
+
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                String location = searchView.getQuery().toString();
+                List<Address> addressList = null;
+
+                if (location != null || !location.equals("")){
+                    Geocoder geocoder = new Geocoder(MapsActivity.this);
+                    try {
+                        addressList = geocoder.getFromLocationName(location,10 );
+
+                    }catch (IOException e){
+                        e.printStackTrace();
+                    }
+                    Address address =  addressList.get(0);
+                    LatLng latLng =  new LatLng(address.getLatitude(), address.getLongitude());
+                    mMap.addMarker(new MarkerOptions().position(latLng).title(location));
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 10));
+                }
+                return  false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                return false;
+            }
+        });
+        mapFragment.getMapAsync(this);
+
+
     }
 
     @Override
@@ -52,6 +98,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Toast.makeText(this, "Map is Ready", Toast.LENGTH_SHORT).show();
         Log.d(TAG, "onMapReady: map is ready");
         mMap = googleMap;
+
+        mMap.getUiSettings().setZoomControlsEnabled(true);
+        mMap.setMyLocationEnabled(true);
 
         if (mLocationPermissionsGranted) {
             getDeviceLocation();
@@ -67,6 +116,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         }
     }
+
 
 
     private void getDeviceLocation(){
@@ -110,7 +160,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void initMap(){
         Log.d(TAG, "initMap: initializing map");
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.mapFragment);
 
         mapFragment.getMapAsync(MapsActivity.this);
     }
